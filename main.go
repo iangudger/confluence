@@ -16,7 +16,7 @@ import (
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/storage"
 
-	"github.com/anacrolix/confluence/confluence"
+	"github.com/iangudger/inundation/confluence"
 )
 
 var flags = struct {

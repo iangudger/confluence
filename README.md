@@ -1,26 +1,29 @@
-confluence
+inundation
 ==========
 
-Confluence is a torrent client as a HTTP service. This allows for easy use from other processes, languages, and machines, due to the ubiquity of HTTP. It makes use of [anacrolix/torrent](https://github.com/anacrolix/torrent)'s [download-on-demand](https://godoc.org/github.com/anacrolix/torrent#Torrent.NewReader) torrenting, and [custom data backend](https://godoc.org/github.com/anacrolix/torrent/storage#ClientImpl) features to store data in a cache. You can then utilize the BitTorrent network with sensible defaults as though it were just regular HTTP.
+Inundation is a torrent client as a HTTP service. This allows for easy use from other processes, languages, and machines, due to the ubiquity of HTTP. It makes use of [anacrolix/torrent](https://github.com/anacrolix/torrent)'s [download-on-demand](https://godoc.org/github.com/anacrolix/torrent#Torrent.NewReader) torrenting, and [custom data backend](https://godoc.org/github.com/anacrolix/torrent/storage#ClientImpl) features to store data in a cache. You can then utilize the BitTorrent network with sensible defaults as though it were just regular HTTP.
 
 Installation
 ============
 
 ```
-go get github.com/anacrolix/confluence
+go get github.com/justinas/alice
+go get github.com/anacrolix/missinggo
+go get github.com/anacrolix/tagflag
+go get github.com/anacrolix/torrent
+go get github.com/anacrolix/dht
+go get github.com/anacrolix/envpprof
+go get github.com/iangudger/inundation
+go install github.com/iangudger/inundation
 ```
-
-## Android
-
-See https://github.com/arranlomas/Android-Confluence-Wrapper and https://github.com/arranlomas/confluence.
 
 Usage
 =====
 
 ```
-$ godo github.com/anacrolix/confluence -h
+$ godoc github.com/iangudger/inundation -h
 Usage:
-  confluence [OPTIONS...]
+  inundation [OPTIONS...]
 Options:
   -addr            (string)          HTTP listen address (Default: localhost:8080)
   -cacheCapacity   (tagflag.Bytes)   Data cache capacity (Default: 11 GB)
@@ -31,7 +34,7 @@ Options:
   -torrentGrace    (time.Duration)   How long to wait to drop a torrent after its last request (Default: 1m0s)
 ```
 
-Confluence will announce itself to DHT, and wait for HTTP activity. Torrents are added to the client as needed. Without an active request on a torrent, it is kicked from the client after the torrent grace period. Its data however may remain in the cache for future uses of that torrent.
+Inundation will announce itself to DHT, and wait for HTTP activity. Torrents are added to the client as needed. Without an active request on a torrent, it is kicked from the client after the torrent grace period. Its data however may remain in the cache for future uses of that torrent.
 
 Routes
 ======
