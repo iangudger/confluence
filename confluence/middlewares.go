@@ -53,15 +53,15 @@ func getTorrentHandle(r *http.Request, ih metainfo.Hash) *torrent.Torrent {
 	return t
 }
 
-func withTorrentContext(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func withTorrentContext(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ih, ok := infohashFromQueryOrServeError(w, r.URL.Query())
 		if !ok {
 			return
 		}
 		t := getTorrentHandle(r, ih)
 		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), torrentContextKey, t)))
-	})
+	}
 }
 
 func saveTorrentWhenGotInfo(t *torrent.Torrent) {

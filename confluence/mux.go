@@ -4,20 +4,15 @@ import (
 	"net/http"
 
 	"github.com/anacrolix/missinggo/httptoo"
-
-	"github.com/justinas/alice"
 )
 
 var mux = http.NewServeMux()
 
 func init() {
-	mux.Handle("/data", alice.New(withTorrentContext).ThenFunc(dataHandler))
+	mux.HandleFunc("/data", withTorrentContext(dataHandler))
 	mux.HandleFunc("/status", statusHandler)
-	mux.Handle("/info", alice.New(withTorrentContext).ThenFunc(infoHandler))
-	mux.Handle("/events", alice.New(withTorrentContext).ThenFunc(eventHandler))
-	mux.Handle("/fileState", alice.New(
-		withTorrentContext,
-		httptoo.GzipHandler,
-	).ThenFunc(fileStateHandler))
-	mux.Handle("/metainfo", alice.New(withTorrentContext).ThenFunc(metainfoHandler))
+	mux.HandleFunc("/info", withTorrentContext(infoHandler))
+	mux.HandleFunc("/events", withTorrentContext(eventHandler))
+	mux.Handle("/fileState", httptoo.GzipHandler(withTorrentContext(fileStateHandler)))
+	mux.HandleFunc("/metainfo", withTorrentContext(metainfoHandler))
 }
