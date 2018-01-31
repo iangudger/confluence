@@ -92,7 +92,7 @@ func main() {
 	}
 	defer l.Close()
 	log.Printf("serving http at %s", l.Addr())
-	var h http.Handler = &confluence.Handler{cl, flags.TorrentGrace}
+	h := confluence.NewHandler(cl, flags.TorrentGrace)
 	if flags.DebugOnMain {
 		h = func() http.Handler {
 			mux := http.NewServeMux()

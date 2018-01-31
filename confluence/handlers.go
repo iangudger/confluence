@@ -13,9 +13,8 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func dataHandler(w http.ResponseWriter, r *http.Request) {
+func dataHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	q := r.URL.Query()
-	t := torrentForRequest(r)
 	if len(q["path"]) == 0 {
 		serveTorrent(w, r, t)
 	} else {
@@ -23,12 +22,11 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func statusHandler(w http.ResponseWriter, r *http.Request) {
-	getTorrentClientFromRequestContext(r).WriteStatus(w)
+func (h *handler) statusHandler(w http.ResponseWriter, r *http.Request) {
+	h.client.WriteStatus(w)
 }
 
-func infoHandler(w http.ResponseWriter, r *http.Request) {
-	t := torrentForRequest(r)
+func infoHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	if nowait, err := strconv.ParseBool(r.URL.Query().Get("nowait")); err == nil && nowait {
 		select {
 		case <-t.GotInfo():
@@ -49,8 +47,7 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(mi.InfoBytes)
 }
 
-func eventHandler(w http.ResponseWriter, r *http.Request) {
-	t := torrentForRequest(r)
+func eventHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	select {
 	case <-t.GotInfo():
 	case <-r.Context().Done():
@@ -86,9 +83,9 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	}.ServeHTTP(w, r)
 }
 
-func fileStateHandler(w http.ResponseWriter, r *http.Request) {
+func fileStateHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	path_ := r.URL.Query().Get("path")
-	f := torrentFileByPath(torrentForRequest(r), path_)
+	f := torrentFileByPath(t, path_)
 	if f == nil {
 		http.Error(w, "file not found", http.StatusNotFound)
 		return
@@ -96,14 +93,13 @@ func fileStateHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(f.State())
 }
 
-func metainfoHandler(w http.ResponseWriter, r *http.Request) {
+func metainfoHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	var mi metainfo.MetaInfo
 	err := bencode.NewDecoder(r.Body).Decode(&mi)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error decoding body: %s", err), http.StatusBadRequest)
 		return
 	}
-	t := torrentForRequest(r)
 	t.AddTrackers(mi.UpvertedAnnounceList())
 	t.SetInfoBytes(mi.InfoBytes)
 	saveTorrentFile(t)

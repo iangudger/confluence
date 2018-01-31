@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/refclose"
 	"github.com/anacrolix/torrent"
 )
+
+var torrentRefs refclose.RefPool
 
 // Path is the given request path.
 func torrentFileByPath(t *torrent.Torrent, path_ string) *torrent.File {
@@ -30,10 +33,6 @@ func saveTorrentFile(t *torrent.Torrent) (err error) {
 	}
 	defer f.Close()
 	return t.Metainfo().Write(f)
-}
-
-func getTorrentClientFromRequestContext(r *http.Request) *torrent.Client {
-	return r.Context().Value(torrentClientContextKey).(*torrent.Client)
 }
 
 func serveTorrent(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {

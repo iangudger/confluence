@@ -1,7 +1,6 @@
 package confluence
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,18 +26,16 @@ func infohashFromQueryOrServeError(w http.ResponseWriter, q url.Values) (ih meta
 
 // Handles ref counting, close grace, and various torrent client wrapping
 // work.
-func getTorrentHandle(r *http.Request, ih metainfo.Hash) *torrent.Torrent {
+func getTorrentHandle(r *http.Request, ih metainfo.Hash, client *torrent.Client, closeGrace time.Duration) *torrent.Torrent {
 	var ref *refclose.Ref
-	grace := torrentCloseGraceForRequest(r)
-	if grace >= 0 {
+	if closeGrace >= 0 {
 		ref = torrentRefs.NewRef(ih)
 	}
-	tc := torrentClientForRequest(r)
-	t, new := tc.AddTorrentInfoHash(ih)
-	if grace >= 0 {
+	t, new := client.AddTorrentInfoHash(ih)
+	if closeGrace >= 0 {
 		ref.SetCloser(t.Drop)
 		go func() {
-			defer time.AfterFunc(grace, ref.Release)
+			defer time.AfterFunc(closeGrace, ref.Release)
 			<-r.Context().Done()
 		}()
 	}
@@ -53,14 +50,13 @@ func getTorrentHandle(r *http.Request, ih metainfo.Hash) *torrent.Torrent {
 	return t
 }
 
-func withTorrentContext(h http.HandlerFunc) http.HandlerFunc {
+func (h *handler) withTorrentContext(f func(http.ResponseWriter, *http.Request, *torrent.Torrent)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ih, ok := infohashFromQueryOrServeError(w, r.URL.Query())
 		if !ok {
 			return
 		}
-		t := getTorrentHandle(r, ih)
-		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), torrentContextKey, t)))
+		f(w, r, getTorrentHandle(r, ih, h.client, h.closeGrace))
 	}
 }
 
