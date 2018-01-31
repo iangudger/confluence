@@ -17,12 +17,13 @@ type handler struct {
 func NewHandler(client *torrent.Client, closeGrace time.Duration) http.Handler {
 	h := handler{http.NewServeMux(), client, closeGrace}
 
-	h.mux.HandleFunc("/data", h.withTorrentContext(dataHandler))
+	h.mux.HandleFunc("/", h.mainHandler)
+	h.mux.HandleFunc("/data", h.withTorrent(dataHandler))
 	h.mux.HandleFunc("/status", h.statusHandler)
-	h.mux.HandleFunc("/info", h.withTorrentContext(infoHandler))
-	h.mux.HandleFunc("/events", h.withTorrentContext(eventHandler))
-	h.mux.Handle("/fileState", httptoo.GzipHandler(h.withTorrentContext(fileStateHandler)))
-	h.mux.HandleFunc("/metainfo", h.withTorrentContext(metainfoHandler))
+	h.mux.HandleFunc("/info", h.withTorrent(infoHandler))
+	h.mux.HandleFunc("/events", h.withTorrent(eventHandler))
+	h.mux.Handle("/fileState", httptoo.GzipHandler(h.withTorrent(fileStateHandler)))
+	h.mux.HandleFunc("/metainfo", h.withTorrent(metainfoHandler))
 
 	return &h
 }

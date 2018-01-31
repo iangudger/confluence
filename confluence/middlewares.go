@@ -50,7 +50,7 @@ func getTorrentHandle(r *http.Request, ih metainfo.Hash, client *torrent.Client,
 	return t
 }
 
-func (h *handler) withTorrentContext(f func(http.ResponseWriter, *http.Request, *torrent.Torrent)) http.HandlerFunc {
+func (h *handler) withTorrent(f func(http.ResponseWriter, *http.Request, *torrent.Torrent)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ih, ok := infohashFromQueryOrServeError(w, r.URL.Query())
 		if !ok {

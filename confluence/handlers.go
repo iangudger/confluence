@@ -3,6 +3,7 @@ package confluence
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +13,40 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 	"golang.org/x/net/websocket"
 )
+
+func execTemplate(tmpl *template.Template, w http.ResponseWriter, pc map[string]interface{}) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if err := tmpl.Execute(w, pc); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+var mainTemplate = template.Must(template.New("main").Parse(`<!DOCTYPE html>
+<html>
+	<head>
+		<title>Torrents</title>
+	</head>
+	<body>
+		<h1>Torrents</h1>
+		<table>
+			<th><td>Name</td></th>{{range $number, $torrent := $.torrents}}
+			<tr>{{$torrent.Name}}</tr>{{end}}
+		</table>
+	</body>
+</html>
+`))
+
+func (h *handler) mainHandler(w http.ResponseWriter, r *http.Request) {
+	type torrent struct {
+		Name string
+	}
+	var torrents []torrent
+	for _, t := range h.client.Torrents() {
+		torrents = append(torrents, torrent{t.Name()})
+	}
+	execTemplate(mainTemplate, w, map[string]interface{}{"torrents": torrents})
+}
 
 func dataHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {
 	q := r.URL.Query()
