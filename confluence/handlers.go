@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
@@ -29,23 +30,80 @@ var mainTemplate = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 	</head>
 	<body>
 		<h1>Torrents</h1>
-		<table>
-			<th><td>Name</td></th>{{range $number, $torrent := $.torrents}}
-			<tr>{{$torrent.Name}}</tr>{{end}}
+		<form action="." method="post" enctype="multipart/form-data">
+			<input name="file" type="file">
+			<input type="submit" value="Add Torrent" name="submit">
+		</form>
+		<table border="1">
+			<tr><th>Name</th><th>Link</th></tr>{{range $number, $torrent := $.torrents}}
+			<tr><td>{{$torrent.Name}}</td><td><a href="/torrent/{{$torrent.Hash}}">info</a></td></tr>{{end}}
 		</table>
 	</body>
+	<a href="/">Refresh</a>
 </html>
 `))
 
 func (h *handler) mainHandler(w http.ResponseWriter, r *http.Request) {
+	if mp, err := r.MultipartReader(); err == nil {
+		for p, err := mp.NextPart(); err == nil; p, err = mp.NextPart() {
+			if p.FormName() != "file" {
+				continue
+			}
+			mi, err := metainfo.Load(p)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if _, err := h.client.AddTorrent(mi); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
 	type torrent struct {
 		Name string
+		Hash string
 	}
 	var torrents []torrent
 	for _, t := range h.client.Torrents() {
-		torrents = append(torrents, torrent{t.Name()})
+		torrents = append(torrents, torrent{t.Name(), t.InfoHash().HexString()})
 	}
 	execTemplate(mainTemplate, w, map[string]interface{}{"torrents": torrents})
+}
+
+var torrentTemplate = template.Must(template.New("torrent").Parse(`<!DOCTYPE html>
+<html>
+	<head>
+		<title>{{$.name}}</title>
+	</head>
+	<body>
+		<h1>{{$.name}}</h1>
+		<a href="{{$.path}}">Refresh</a>
+		<a href="/">Back</a>
+	</body>
+</html>
+`))
+
+func (h *handler) torrentHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) != 3 {
+		http.Error(w, "Malformed torrent request", http.StatusNotFound)
+		return
+	}
+
+	var ih metainfo.Hash
+	if err := ih.FromHexString(parts[2]); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	t, ok := h.client.Torrent(ih)
+	if !ok {
+		http.Error(w, "Torrent not found", http.StatusNotFound)
+		return
+	}
+
+	execTemplate(torrentTemplate, w, map[string]interface{}{"name": t.Name(), "path": r.URL.Path})
 }
 
 func dataHandler(w http.ResponseWriter, r *http.Request, t *torrent.Torrent) {

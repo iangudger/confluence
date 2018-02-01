@@ -18,6 +18,7 @@ func NewHandler(client *torrent.Client, closeGrace time.Duration) http.Handler {
 	h := handler{http.NewServeMux(), client, closeGrace}
 
 	h.mux.HandleFunc("/", h.mainHandler)
+	h.mux.HandleFunc("/torrent/", h.torrentHandler)
 	h.mux.HandleFunc("/data", h.withTorrent(dataHandler))
 	h.mux.HandleFunc("/status", h.statusHandler)
 	h.mux.HandleFunc("/info", h.withTorrent(infoHandler))
